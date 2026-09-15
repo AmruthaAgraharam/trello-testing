@@ -67,7 +67,6 @@ public class CardPage {
     private By coverColorSwatch = By.cssSelector("[data-testid^='color-tile-']");
     private By coverAppliedIndicator = By.cssSelector("[data-testid='card-cover']");
 
-
     // ─────────────────────────────────────────────
     // CONSTRUCTOR
     // ─────────────────────────────────────────────
@@ -784,150 +783,170 @@ public class CardPage {
         clickCover();
         selectCoverColor();
     }
-        // ─────────────────────────────────────────────
-        // DRAG AND DROP
-        // ─────────────────────────────────────────────
 
-        /**
-         * Drags a card by name from a source list to a target list.
-         *
-         * @param cardName   visible text of the card to drag
-         * @param sourceList name of the list the card currently lives in
-         * @param targetList name of the list to drop the card into
-         */
-        public void dragCardToList(String cardName, String sourceList, String targetList) {
-            String cardsContainerXpath =
-                    "//li[@data-testid='list-wrapper']" +
-                    "[.//h2[@data-testid='list-name']//span[text()='%s']]" +
-                    "//ol[@data-testid='list-cards']";
 
-            String cardLiXpath = cardsContainerXpath +
-                    "//li[@data-testid='list-card'][.//a[@data-testid='card-name'][text()='" + cardName + "']]";
 
-            By sourceCardBy  = By.xpath(String.format(cardLiXpath, sourceList));
-            By targetListBy  = By.xpath(String.format(cardsContainerXpath, targetList));
+    // ─────────────────────────────────────────────
+    // DRAG AND DROP
+    // ─────────────────────────────────────────────
 
-            WebElement sourceCard = wait.until(ExpectedConditions.visibilityOfElementLocated(sourceCardBy));
-            WebElement targetlist  = wait.until(ExpectedConditions.visibilityOfElementLocated(targetListBy));
+    /**
+     * Drags a card by name from a source list to a target list.
+     *
+     * @param cardName   visible text of the card to drag
+     * @param sourceList name of the list the card currently lives in
+     * @param targetList name of the list to drop the card into
+     */
+    public void dragCardToList(String cardName, String sourceList, String targetList) {
+        String cardsContainerXpath =
+                "//li[@data-testid='list-wrapper']" +
+                "[.//h2[@data-testid='list-name']//span[text()='%s']]" +
+                "//ol[@data-testid='list-cards']";
 
-            Duration pause = Duration.ofMillis(1000);
-            new Actions(driver)
-                    .moveToElement(sourceCard).pause(pause)
-                    .clickAndHold(sourceCard).pause(pause)
-                    .moveByOffset(5, 5).pause(pause)
-                    .moveToElement(targetlist).pause(pause)
-                    .release().pause(pause)
-                    .build().perform();
+        String cardLiXpath = cardsContainerXpath +
+                "//li[@data-testid='list-card'][.//a[@data-testid='card-name'][text()='" + cardName + "']]";
+
+        By sourceCardBy = By.xpath(String.format(cardLiXpath, sourceList));
+        By targetListBy = By.xpath(String.format(cardsContainerXpath, targetList));
+
+        WebElement sourceCard  = wait.until(ExpectedConditions.visibilityOfElementLocated(sourceCardBy));
+        WebElement targetListEl = wait.until(ExpectedConditions.visibilityOfElementLocated(targetListBy));
+
+        Duration pause = Duration.ofMillis(1000);
+        new Actions(driver)
+                .moveToElement(sourceCard).pause(pause)
+                .clickAndHold(sourceCard).pause(pause)
+                .moveByOffset(5, 5).pause(pause)
+                .moveToElement(targetListEl).pause(pause)
+                .release().pause(pause)
+                .build().perform();
+    }
+
+    /**
+     * Drags a card within the same list to reorder it.
+     *
+     * @param cardName    name of the card to drag
+     * @param targetCard  name of the card to drop onto (new position)
+     * @param listName    list both cards belong to
+     */
+    public void dragCardInList(String cardName, String targetCard, String listName) {
+        String listCardsXpath =
+                "//li[@data-testid='list-wrapper']" +
+                "[.//h2[@data-testid='list-name']//span[text()='" + listName + "']]" +
+                "//ol[@data-testid='list-cards']";
+
+        String cardXpath = listCardsXpath +
+                "//li[@data-testid='list-card'][.//a[@data-testid='card-name'][text()='%s']]";
+
+        WebElement source = wait.until(ExpectedConditions.visibilityOfElementLocated(
+                By.xpath(String.format(cardXpath, cardName))));
+        WebElement target = wait.until(ExpectedConditions.visibilityOfElementLocated(
+                By.xpath(String.format(cardXpath, targetCard))));
+
+        Duration pause = Duration.ofMillis(1000);
+        new Actions(driver)
+                .moveToElement(source).pause(pause)
+                .clickAndHold(source).pause(pause)
+                .moveByOffset(5, 5).pause(pause)
+                .moveToElement(target).pause(pause)
+                .release().pause(pause)
+                .build().perform();
+    }
+
+    /**
+     * Returns the index of a card within its list, or -1 if not found.
+     * Waits for the list to be visible before scanning so this is safe to
+     * call immediately after navigating to the board.
+     *
+     * @param cardName name of the card to locate
+     * @param listName list to search in
+     */
+    public int getCardIndexInList(String cardName, String listName) {
+        By listBy = By.xpath(
+                "//li[@data-testid='list-wrapper']" +
+                "[.//h2[@data-testid='list-name']//span[text()='" + listName + "']]" +
+                "//ol[@data-testid='list-cards']");
+
+        // Wait for the list container to be visible before reading card order
+        try {
+            wait.until(ExpectedConditions.visibilityOfElementLocated(listBy));
+        } catch (Exception e) {
+            return -1; // list does not exist on this board
         }
 
-        /**
-         * Returns true if a card with the given name is visible inside the specified list.
-         *
-         * @param cardName visible text of the card
-         * @param listName name of the list to look in
-         */
-        public boolean isCardInList(String cardName, String listName) {
-            By cardBy = By.xpath(
-                    "//li[@data-testid='list-wrapper']" +
-                    "[.//h2[@data-testid='list-name']//span[text()='" + listName + "']]" +
-                    "//li[@data-testid='list-card'][.//a[@data-testid='card-name'][text()='" + cardName + "']]"
-            );
-            try {
-                return wait.until(ExpectedConditions.visibilityOfElementLocated(cardBy)).isDisplayed();
-            } catch (Exception e) {
-                return false;
+        By allCardsBy = By.xpath(
+                "//li[@data-testid='list-wrapper']" +
+                "[.//h2[@data-testid='list-name']//span[text()='" + listName + "']]" +
+                "//ol[@data-testid='list-cards']//li[@data-testid='list-card']");
+
+        List<WebElement> cards = driver.findElements(allCardsBy);
+        for (int i = 0; i < cards.size(); i++) {
+            String text = cards.get(i)
+                    .findElement(By.xpath(".//a[@data-testid='card-name']")).getText();
+            if (text.equals(cardName)) {
+                return i;
             }
         }
+        return -1;
+    }
 
-        /**
-         * Returns the number of card elements matching the given card name inside the specified list.
-         * A result of 0 means the card is no longer present in that list.
-         *
-         * @param cardName visible text of the card
-         * @param listName name of the list to check
-         */
-        public int countCardsInList(String cardName, String listName) {
-            By cardBy = By.xpath(
-                    "//li[@data-testid='list-wrapper']" +
-                    "[.//h2[@data-testid='list-name']//span[text()='" + listName + "']]" +
-                    "//li[@data-testid='list-card'][.//a[@data-testid='card-name'][text()='" + cardName + "']]"
-            );
-            return driver.findElements(cardBy).size();
+    /**
+     * Finds which list a card currently lives in by searching every list on the board.
+     * Returns the list name, or null if the card is not found on the board.
+     *
+     * @param cardName name of the card to locate
+     */
+    public String findListContainingCard(String cardName) {
+        By allListNames = By.xpath(
+                "//li[@data-testid='list-wrapper']//h2[@data-testid='list-name']//span");
+        try {
+            wait.until(ExpectedConditions.visibilityOfElementLocated(allListNames));
+        } catch (Exception e) {
+            return null;
+        }
+        List<WebElement> lists = driver.findElements(allListNames);
+        for (WebElement list : lists) {
+            String listName = list.getText();
+            if (getCardIndexInList(cardName, listName) >= 0) {
+                return listName;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Returns true if a card with the given name is visible inside the specified list.
+     *
+     * @param cardName visible text of the card
+     * @param listName name of the list to look in
+     */
+    public boolean isCardInList(String cardName, String listName) {
+        By cardBy = By.xpath(
+                "//li[@data-testid='list-wrapper']" +
+                "[.//h2[@data-testid='list-name']//span[text()='" + listName + "']]" +
+                "//li[@data-testid='list-card'][.//a[@data-testid='card-name'][text()='" + cardName + "']]"
+        );
+        try {
+            return wait.until(ExpectedConditions.visibilityOfElementLocated(cardBy)).isDisplayed();
+        } catch (Exception e) {
+            return false;
         }
     }
 
-
-
-        // ─────────────────────────────────────────────
-        // DRAG AND DROP
-        // ─────────────────────────────────────────────
-
-        /**
-         * Drags a card by name from a source list to a target list.
-         *
-         * @param cardName   visible text of the card to drag
-         * @param sourceList name of the list the card currently lives in
-         * @param targetList name of the list to drop the card into
-         */
-        public void dragCardToList(String cardName, String sourceList, String targetList) {
-            String cardsContainerXpath =
-                    "//li[@data-testid='list-wrapper']" +
-                    "[.//h2[@data-testid='list-name']//span[text()='%s']]" +
-                    "//ol[@data-testid='list-cards']";
-
-            String cardLiXpath = cardsContainerXpath +
-                    "//li[@data-testid='list-card'][.//a[@data-testid='card-name'][text()='" + cardName + "']]";
-
-            By sourceCardBy  = By.xpath(String.format(cardLiXpath, sourceList));
-            By targetListBy  = By.xpath(String.format(cardsContainerXpath, targetList));
-
-            WebElement sourceCard = wait.until(ExpectedConditions.visibilityOfElementLocated(sourceCardBy));
-            WebElement targetlist  = wait.until(ExpectedConditions.visibilityOfElementLocated(targetListBy));
-
-            Duration pause = Duration.ofMillis(1000);
-            new Actions(driver)
-                    .moveToElement(sourceCard).pause(pause)
-                    .clickAndHold(sourceCard).pause(pause)
-                    .moveByOffset(5, 5).pause(pause)
-                    .moveToElement(targetlist).pause(pause)
-                    .release().pause(pause)
-                    .build().perform();
-        }
-
-        /**
-         * Returns true if a card with the given name is visible inside the specified list.
-         *
-         * @param cardName visible text of the card
-         * @param listName name of the list to look in
-         */
-        public boolean isCardInList(String cardName, String listName) {
-            By cardBy = By.xpath(
-                    "//li[@data-testid='list-wrapper']" +
-                    "[.//h2[@data-testid='list-name']//span[text()='" + listName + "']]" +
-                    "//li[@data-testid='list-card'][.//a[@data-testid='card-name'][text()='" + cardName + "']]"
-            );
-            try {
-                return wait.until(ExpectedConditions.visibilityOfElementLocated(cardBy)).isDisplayed();
-            } catch (Exception e) {
-                return false;
-            }
-        }
-
-        /**
-         * Returns the number of card elements matching the given card name inside the specified list.
-         * A result of 0 means the card is no longer present in that list.
-         *
-         * @param cardName visible text of the card
-         * @param listName name of the list to check
-         */
-        public int countCardsInList(String cardName, String listName) {
-            By cardBy = By.xpath(
-                    "//li[@data-testid='list-wrapper']" +
-                    "[.//h2[@data-testid='list-name']//span[text()='" + listName + "']]" +
-                    "//li[@data-testid='list-card'][.//a[@data-testid='card-name'][text()='" + cardName + "']]"
-            );
-            return driver.findElements(cardBy).size();
-        }
+    /**
+     * Returns the number of card elements matching the given card name inside the specified list.
+     * A result of 0 means the card is no longer present in that list.
+     *
+     * @param cardName visible text of the card
+     * @param listName name of the list to check
+     */
+    public int countCardsInList(String cardName, String listName) {
+        By cardBy = By.xpath(
+                "//li[@data-testid='list-wrapper']" +
+                "[.//h2[@data-testid='list-name']//span[text()='" + listName + "']]" +
+                "//li[@data-testid='list-card'][.//a[@data-testid='card-name'][text()='" + cardName + "']]"
+        );
+        return driver.findElements(cardBy).size();
     }
 
 
@@ -949,5 +968,65 @@ public class CardPage {
      */
     public void closeCoverPopover() {
         new org.openqa.selenium.interactions.Actions(driver).sendKeys(Keys.ESCAPE).perform();
+    }
+
+    /**
+     * Returns the close-dialog button element, for layout/rendering assertions.
+     */
+    public WebElement getCloseCardButtonElement() {
+        return wait.until(ExpectedConditions.visibilityOfElementLocated(closeCardButton));
+    }
+
+    /**
+     * Returns the card description content area element, for layout/rendering assertions.
+     * Falls back to the "Add a more detailed description" button if no description has been
+     * saved yet (both represent the description zone on the card back).
+     */
+    public WebElement getDescriptionAreaElement() {
+        By savedArea = By.cssSelector("[data-testid='description-content-area']");
+        try {
+            return wait.until(ExpectedConditions.visibilityOfElementLocated(savedArea));
+        } catch (Exception e) {
+            return wait.until(ExpectedConditions.visibilityOfElementLocated(descriptionButton));
+        }
+    }
+
+    /**
+     * Returns the checkbox label element for the given checklist item,
+     * for layout/rendering assertions.
+     *
+     * @param itemName visible text / aria-label of the checklist item
+     */
+    public WebElement getChecklistItemCheckboxElement(String itemName) {
+        return wait.until(ExpectedConditions.visibilityOfElementLocated(
+                checklistItemCheckboxInput(itemName)));
+    }
+
+    /**
+     * Drags a card to an invalid drop target (the page header) to verify it
+     * snaps back to its original position in the list.
+     *
+     * @param cardName name of the card to drag
+     * @param listName list the card currently belongs to
+     */
+    public void dragCardToInvalidTarget(String cardName, String listName) {
+        By sourceCardBy = By.xpath(
+                "//li[@data-testid='list-wrapper']" +
+                "[.//h2[@data-testid='list-name']//span[text()='" + listName + "']]" +
+                "//ol[@data-testid='list-cards']" +
+                "//li[@data-testid='list-card'][.//a[@data-testid='card-name'][text()='" + cardName + "']]");
+
+        WebElement sourceCard   = wait.until(ExpectedConditions.visibilityOfElementLocated(sourceCardBy));
+        WebElement invalidTarget = wait.until(ExpectedConditions.visibilityOfElementLocated(
+                By.xpath("//nav[@data-testid='authenticated-header']")));
+
+        Duration pause = Duration.ofMillis(1000);
+        new Actions(driver)
+                .moveToElement(sourceCard).pause(pause)
+                .clickAndHold(sourceCard).pause(pause)
+                .moveByOffset(5, 5).pause(pause)
+                .moveToElement(invalidTarget).pause(pause)
+                .release().pause(pause)
+                .build().perform();
     }
 }
