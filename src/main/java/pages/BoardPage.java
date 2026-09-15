@@ -141,6 +141,13 @@ public class BoardPage {
     }
 
     /**
+     * Get the board title element, for layout/rendering assertions.
+     */
+    public WebElement getBoardTitleElement() {
+        return wait.until(ExpectedConditions.visibilityOfElementLocated(boardTitleDisplay));
+    }
+
+    /**
      * Updates/Renames the board title.
      */
     public void updateBoardTitle(String newName) {
@@ -446,5 +453,58 @@ public class BoardPage {
             System.out.println("[DEBUG deleteBoardPermanently] Failed to click deleteConfirmBtn: " + e.getMessage());
             throw e;
         }
+    }
+
+    // ─────────────────────────────────────────────
+    // DRAG AND DROP
+    // ─────────────────────────────────────────────
+
+    /**
+     * Drags a list header to reorder it on the board.
+     *
+     * @param sourceListName name of the list to drag
+     * @param targetListName name of the list to drop onto
+     */
+    public void dragListToPosition(String sourceListName, String targetListName) {
+        WebElement source = wait.until(ExpectedConditions.visibilityOfElementLocated(
+                By.xpath("//h2[@data-testid='list-name'][.//span[text()='" + sourceListName + "']]")));
+        WebElement target = wait.until(ExpectedConditions.visibilityOfElementLocated(
+                By.xpath("//h2[@data-testid='list-name'][.//span[text()='" + targetListName + "']]")));
+
+        Duration pause = Duration.ofMillis(1000);
+        new org.openqa.selenium.interactions.Actions(driver)
+                .moveToElement(source).pause(pause)
+                .clickAndHold(source).pause(pause)
+                .moveByOffset(5, 5).pause(pause)
+                .moveToElement(target).pause(pause)
+                .release().pause(pause)
+                .build().perform();
+    }
+
+    /**
+     * Returns the names of all lists on the board in their current order.
+     */
+    public java.util.List<String> getListOrder() {
+        return driver.findElements(
+                By.xpath("//li[@data-testid='list-wrapper']//h2[@data-testid='list-name']//span"))
+                .stream()
+                .map(WebElement::getText)
+                .collect(java.util.stream.Collectors.toList());
+    }
+
+    /**
+     * Waits until the given list name has moved to a different index than the one provided.
+     *
+     * @param listName      list whose position is expected to change
+     * @param previousIndex the index it held before the drag
+     */
+    public void waitForListReorder(String listName, int previousIndex) {
+        wait.until(d -> {
+            java.util.List<String> names = d.findElements(
+                    By.xpath("//li[@data-testid='list-wrapper']//h2[@data-testid='list-name']//span"))
+                    .stream().map(WebElement::getText).collect(java.util.stream.Collectors.toList());
+            int idx = names.indexOf(listName);
+            return idx >= 0 && idx != previousIndex;
+        });
     }
 }
