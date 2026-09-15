@@ -6,6 +6,7 @@ import org.openqa.selenium.Keys;
 import org.openqa.selenium.TimeoutException;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
+import org.openqa.selenium.interactions.Actions;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
 import java.time.Duration;
@@ -320,33 +321,6 @@ public class CardPage {
 
         System.out.println("STEP: Label selected: " + color);
     }
-    /**
-     * Get the "Add a card" button element for the current fixture list, for layout/rendering assertions.
-     */
-    public WebElement getAddCardButtonElement() {
-        By addCardBtn = By.xpath("//button[@aria-label='Add a card in " + TestData.listName + "']");
-        return wait.until(ExpectedConditions.elementToBeClickable(addCardBtn));
-    }
-
-    /**
-     * Get the card dialog's close button element, for layout/rendering assertions.
-     */
-    public WebElement getCloseCardButtonElement() {
-        return wait.until(ExpectedConditions.elementToBeClickable(closeCardButton));
-    }
-
-    /**
-     * Get the description area/button element (whichever of add/edit is currently present),
-     * for layout/rendering assertions.
-     */
-    public WebElement getDescriptionAreaElement() {
-        List<WebElement> addButton = driver.findElements(descriptionButton);
-        By target = (!addButton.isEmpty() && addButton.get(0).isDisplayed())
-                ? descriptionButton
-                : editDescriptionButton;
-        return wait.until(ExpectedConditions.visibilityOfElementLocated(target));
-    }
-
     public void closeCard() {
 
         System.out.println("STEP: Closing card...");
@@ -565,16 +539,6 @@ public class CardPage {
         addButton.click();
 
         System.out.println("STEP: Checklist item added successfully.");
-    }
-
-    /**
-     * Get an existing checklist item's clickable checkbox row, for layout/rendering
-     * assertions - unlike the "add item" composer (which collapses on a fresh card
-     * open and needs an extra click to reveal), this row is always visible once the
-     * item exists, making it a stable assertion target regardless of composer state.
-     */
-    public WebElement getChecklistItemCheckboxElement(String itemName) {
-        return wait.until(ExpectedConditions.visibilityOfElementLocated(checklistItemCheckboxLabel(itemName)));
     }
     /**
      * The checklist item's name is only exposed via the aria-label of its checkbox input
@@ -820,6 +784,154 @@ public class CardPage {
         clickCover();
         selectCoverColor();
     }
+        // ─────────────────────────────────────────────
+        // DRAG AND DROP
+        // ─────────────────────────────────────────────
+
+        /**
+         * Drags a card by name from a source list to a target list.
+         *
+         * @param cardName   visible text of the card to drag
+         * @param sourceList name of the list the card currently lives in
+         * @param targetList name of the list to drop the card into
+         */
+        public void dragCardToList(String cardName, String sourceList, String targetList) {
+            String cardsContainerXpath =
+                    "//li[@data-testid='list-wrapper']" +
+                    "[.//h2[@data-testid='list-name']//span[text()='%s']]" +
+                    "//ol[@data-testid='list-cards']";
+
+            String cardLiXpath = cardsContainerXpath +
+                    "//li[@data-testid='list-card'][.//a[@data-testid='card-name'][text()='" + cardName + "']]";
+
+            By sourceCardBy  = By.xpath(String.format(cardLiXpath, sourceList));
+            By targetListBy  = By.xpath(String.format(cardsContainerXpath, targetList));
+
+            WebElement sourceCard = wait.until(ExpectedConditions.visibilityOfElementLocated(sourceCardBy));
+            WebElement targetlist  = wait.until(ExpectedConditions.visibilityOfElementLocated(targetListBy));
+
+            Duration pause = Duration.ofMillis(1000);
+            new Actions(driver)
+                    .moveToElement(sourceCard).pause(pause)
+                    .clickAndHold(sourceCard).pause(pause)
+                    .moveByOffset(5, 5).pause(pause)
+                    .moveToElement(targetlist).pause(pause)
+                    .release().pause(pause)
+                    .build().perform();
+        }
+
+        /**
+         * Returns true if a card with the given name is visible inside the specified list.
+         *
+         * @param cardName visible text of the card
+         * @param listName name of the list to look in
+         */
+        public boolean isCardInList(String cardName, String listName) {
+            By cardBy = By.xpath(
+                    "//li[@data-testid='list-wrapper']" +
+                    "[.//h2[@data-testid='list-name']//span[text()='" + listName + "']]" +
+                    "//li[@data-testid='list-card'][.//a[@data-testid='card-name'][text()='" + cardName + "']]"
+            );
+            try {
+                return wait.until(ExpectedConditions.visibilityOfElementLocated(cardBy)).isDisplayed();
+            } catch (Exception e) {
+                return false;
+            }
+        }
+
+        /**
+         * Returns the number of card elements matching the given card name inside the specified list.
+         * A result of 0 means the card is no longer present in that list.
+         *
+         * @param cardName visible text of the card
+         * @param listName name of the list to check
+         */
+        public int countCardsInList(String cardName, String listName) {
+            By cardBy = By.xpath(
+                    "//li[@data-testid='list-wrapper']" +
+                    "[.//h2[@data-testid='list-name']//span[text()='" + listName + "']]" +
+                    "//li[@data-testid='list-card'][.//a[@data-testid='card-name'][text()='" + cardName + "']]"
+            );
+            return driver.findElements(cardBy).size();
+        }
+    }
+
+
+
+        // ─────────────────────────────────────────────
+        // DRAG AND DROP
+        // ─────────────────────────────────────────────
+
+        /**
+         * Drags a card by name from a source list to a target list.
+         *
+         * @param cardName   visible text of the card to drag
+         * @param sourceList name of the list the card currently lives in
+         * @param targetList name of the list to drop the card into
+         */
+        public void dragCardToList(String cardName, String sourceList, String targetList) {
+            String cardsContainerXpath =
+                    "//li[@data-testid='list-wrapper']" +
+                    "[.//h2[@data-testid='list-name']//span[text()='%s']]" +
+                    "//ol[@data-testid='list-cards']";
+
+            String cardLiXpath = cardsContainerXpath +
+                    "//li[@data-testid='list-card'][.//a[@data-testid='card-name'][text()='" + cardName + "']]";
+
+            By sourceCardBy  = By.xpath(String.format(cardLiXpath, sourceList));
+            By targetListBy  = By.xpath(String.format(cardsContainerXpath, targetList));
+
+            WebElement sourceCard = wait.until(ExpectedConditions.visibilityOfElementLocated(sourceCardBy));
+            WebElement targetlist  = wait.until(ExpectedConditions.visibilityOfElementLocated(targetListBy));
+
+            Duration pause = Duration.ofMillis(1000);
+            new Actions(driver)
+                    .moveToElement(sourceCard).pause(pause)
+                    .clickAndHold(sourceCard).pause(pause)
+                    .moveByOffset(5, 5).pause(pause)
+                    .moveToElement(targetlist).pause(pause)
+                    .release().pause(pause)
+                    .build().perform();
+        }
+
+        /**
+         * Returns true if a card with the given name is visible inside the specified list.
+         *
+         * @param cardName visible text of the card
+         * @param listName name of the list to look in
+         */
+        public boolean isCardInList(String cardName, String listName) {
+            By cardBy = By.xpath(
+                    "//li[@data-testid='list-wrapper']" +
+                    "[.//h2[@data-testid='list-name']//span[text()='" + listName + "']]" +
+                    "//li[@data-testid='list-card'][.//a[@data-testid='card-name'][text()='" + cardName + "']]"
+            );
+            try {
+                return wait.until(ExpectedConditions.visibilityOfElementLocated(cardBy)).isDisplayed();
+            } catch (Exception e) {
+                return false;
+            }
+        }
+
+        /**
+         * Returns the number of card elements matching the given card name inside the specified list.
+         * A result of 0 means the card is no longer present in that list.
+         *
+         * @param cardName visible text of the card
+         * @param listName name of the list to check
+         */
+        public int countCardsInList(String cardName, String listName) {
+            By cardBy = By.xpath(
+                    "//li[@data-testid='list-wrapper']" +
+                    "[.//h2[@data-testid='list-name']//span[text()='" + listName + "']]" +
+                    "//li[@data-testid='list-card'][.//a[@data-testid='card-name'][text()='" + cardName + "']]"
+            );
+            return driver.findElements(cardBy).size();
+        }
+    }
+
+
+
 
     /**
      * Get every cover color swatch in the open cover popover, for layout/rendering
