@@ -20,6 +20,7 @@
         <selenium.version>4.25.0</selenium.version>
         <testng.version>7.10.2</testng.version>
         <webdrivermanager.version>5.9.2</webdrivermanager.version>
+        <allure.version>2.29.1</allure.version>
     </properties>
 
     <dependencies>
@@ -44,6 +45,13 @@
             <version>${webdrivermanager.version}</version>
         </dependency>
 
+        <!-- Allure reporting: records each TestNG result into target/allure-results -->
+        <dependency>
+            <groupId>io.qameta.allure</groupId>
+            <artifactId>allure-testng</artifactId>
+            <version>${allure.version}</version>
+        </dependency>
+
     </dependencies>
 
     <build>
@@ -66,6 +74,27 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>3.2.2</version>
+                <configuration>
+                    <systemPropertyVariables>
+                        <allure.results.directory>${project.build.directory}/allure-results</allure.results.directory>
+                    </systemPropertyVariables>
+                </configuration>
+            </plugin>
+
+            <!-- Allure Maven Plugin: turns target/allure-results into an HTML report -->
+            <!-- Run `mvn allure:report` (static site under target/site/allure-maven-plugin) -->
+            <!-- or `mvn allure:serve` (opens a live report in the browser) after `mvn test`. -->
+            <plugin>
+                <groupId>io.qameta.allure</groupId>
+                <artifactId>allure-maven</artifactId>
+                <version>2.15.2</version>
+                <configuration>
+                    <!-- allure-commandline (the report generator this plugin downloads) is versioned
+                         independently of allure-testng - it has no 2.29.1 release, only 2.29.0, so this
+                         is pinned separately rather than reusing ${allure.version}. -->
+                    <reportVersion>2.29.0</reportVersion>
+                    <resultsDirectory>${project.build.directory}/allure-results</resultsDirectory>
+                </configuration>
             </plugin>
         </plugins>
     </build>

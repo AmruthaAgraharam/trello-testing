@@ -160,6 +160,9 @@ public class CardTests extends BaseTest {
         System.out.println("STEP 1: Entering card title: " + cardTitle);
         wait.until(ExpectedConditions.visibilityOfElementLocated(
                 By.xpath("//*[@data-testid='list-card-composer-textarea']")));
+
+        wait.until(ExpectedConditions.visibilityOfElementLocated(
+                By.xpath("//*[@data-testid='list-card-composer-textarea']")));
         cardPage.enterCardTitle(cardTitle);
 
         System.out.println("STEP 2: Submitting card...");

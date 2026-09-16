@@ -1,6 +1,7 @@
 package utils;
 
 import io.github.bonigarcia.wdm.WebDriverManager;
+import io.qameta.allure.testng.AllureTestNg;
 import org.openqa.selenium.By;
 import org.openqa.selenium.TimeoutException;
 import org.openqa.selenium.WebDriver;
@@ -26,7 +27,7 @@ import java.util.function.Predicate;
  * BaseTest provides WebDriver setup/teardown and login helpers for all test classes.
  * Extend this class and call performLogin() when your tests need a logged-in session.
  */
-@Listeners(ScreenshotListener.class)
+@Listeners({ScreenshotListener.class, AllureTestNg.class})
 public class BaseTest {
 
     private static final ThreadLocal<WebDriver> CURRENT_DRIVER = new ThreadLocal<>();
