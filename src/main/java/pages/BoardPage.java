@@ -284,11 +284,26 @@ public class BoardPage {
 
     /**
      * Open the board's Share dialog.
+     * Retries if element becomes stale (page refresh/reload).
      */
     public void openShareDialog() {
-        WebElement shareButton = wait.until(ExpectedConditions.elementToBeClickable(shareButtonLocator));
-        shareButton.click();
-        wait.until(ExpectedConditions.visibilityOfElementLocated(shareSearchInputLocator));
+        int attempts = 0;
+        int maxAttempts = 3;
+        
+        while (attempts < maxAttempts) {
+            try {
+                WebElement shareButton = wait.until(ExpectedConditions.elementToBeClickable(shareButtonLocator));
+                shareButton.click();
+                wait.until(ExpectedConditions.visibilityOfElementLocated(shareSearchInputLocator));
+                return; // Success
+            } catch (org.openqa.selenium.StaleElementReferenceException e) {
+                attempts++;
+                if (attempts >= maxAttempts) {
+                    throw e;
+                }
+                try { Thread.sleep(500); } catch (InterruptedException ignored) {}
+            }
+        }
     }
 
     /**
@@ -311,18 +326,48 @@ public class BoardPage {
         searchInput.clear();
         searchInput.sendKeys(email);
 
+        // Brief pause to let typeahead populate
+        try { Thread.sleep(1500); } catch (InterruptedException ignored) {}
+
+        boolean suggestionClicked = false;
         try {
             WebElement suggestion = new WebDriverWait(driver, Duration.ofSeconds(5))
                     .until(ExpectedConditions.elementToBeClickable(typeaheadSuggestionLocator));
             suggestion.click();
+            suggestionClicked = true;
+            
+            // Wait for member to be staged after clicking suggestion
+            Thread.sleep(2000);
+            
+            // Check if Share button still visible (dialog didn't auto-close)
+            List<WebElement> shareButtons = driver.findElements(sendInviteButtonLocator);
+            if (shareButtons.isEmpty() || !shareButtons.get(0).isDisplayed()) {
+                // Member was added immediately, dialog auto-closed
+                try { Thread.sleep(2000); } catch (InterruptedException ignored) {}
+                return;
+            }
+            
         } catch (Exception e) {
-            // No typeahead suggestion - fall through and let the Share button send an
-            // external invite for the typed email.
+            // No typeahead suggestion - will send external invite
         }
 
         WebElement sendInviteButton =
                 wait.until(ExpectedConditions.elementToBeClickable(sendInviteButtonLocator));
         sendInviteButton.click();
+
+        // Wait dynamically for member count to increase (handles billing processing delay)
+        int memberCountBefore = driver.findElements(memberItemLocator).size();
+        try {
+            new WebDriverWait(driver, Duration.ofSeconds(5)).until(d -> {
+                int currentCount = d.findElements(memberItemLocator).size();
+                return currentCount > memberCountBefore;
+            });
+        } catch (Exception e) {
+            // Timeout is OK - member might already be on board
+        }
+        
+        // Let UI stabilize
+        try { Thread.sleep(1000); } catch (InterruptedException ignored) {}
     }
 
     /**
@@ -334,13 +379,19 @@ public class BoardPage {
      */
     public boolean isMemberOnBoard(String emailOrName) {
         try {
-            List<WebElement> members = driver.findElements(memberItemLocator);
-            for (WebElement member : members) {
-                if (member.getText().contains(emailOrName)) {
-                    return true;
+            // Wait up to 10 seconds for the member to appear in the list
+            return wait.until(driver -> {
+                List<WebElement> members = driver.findElements(memberItemLocator);
+                
+                for (WebElement member : members) {
+                    String memberText = member.getText();
+                    // Try case-insensitive match
+                    if (memberText.toLowerCase().contains(emailOrName.toLowerCase())) {
+                        return true;
+                    }
                 }
-            }
-            return false;
+                return false;
+            });
         } catch (Exception e) {
             return false;
         }
@@ -379,11 +430,15 @@ public class BoardPage {
 
     private WebElement findMemberRow(String emailOrName) {
         List<WebElement> members = driver.findElements(memberItemLocator);
+        
         for (WebElement member : members) {
-            if (member.getText().contains(emailOrName)) {
+            String memberText = member.getText();
+            // Try case-insensitive match
+            if (memberText.toLowerCase().contains(emailOrName.toLowerCase())) {
                 return member;
             }
         }
+        
         throw new IllegalStateException("No board member found matching: " + emailOrName);
     }
 

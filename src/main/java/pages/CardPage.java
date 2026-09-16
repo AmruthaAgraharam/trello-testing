@@ -171,11 +171,15 @@ public class CardPage {
 
         WebElement searchInput = wait.until(ExpectedConditions.visibilityOfElementLocated(memberSearchInputLocator));
         searchInput.sendKeys(emailOrUsernameFragment);
+        
+        // Wait for search results
+        try { Thread.sleep(1000); } catch (InterruptedException ignored) {}
 
         WebElement memberButton = wait.until(ExpectedConditions.elementToBeClickable(memberSearchResultLocator));
         memberButton.click();
 
         new Actions(driver).sendKeys(Keys.ESCAPE).perform();
+        
         new WebDriverWait(driver, Duration.ofSeconds(30))
                 .until(d -> isMemberAssigned(emailOrUsernameFragment));
     }
