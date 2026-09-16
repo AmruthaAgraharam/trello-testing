@@ -282,6 +282,18 @@ This suite excludes:
 
 All other tests create their fixtures dynamically and run on fresh accounts.
 
+## Test Reporting - Allure
+
+Every test run (any suite, any single class/method) records results into `target/allure-results` via the `AllureTestNg` listener registered on `BaseTest`. Generate the HTML report after running tests:
+
+```bash
+mvn clean test                                        # or: mvn test -DsuiteXmlFile=testng-exclude-login.xml
+mvn allure:report                                     # builds target/site/allure-maven-plugin/index.html
+mvn allure:serve                                      # or: build + open a live report in your browser
+```
+
+`allure:report`/`allure:serve` read whatever is currently in `target/allure-results`, so re-running `mvn test` for a different suite (e.g. switching between the full suite and `testng-exclude-login.xml`) before regenerating the report reflects only the latest run. Raw results and the generated site both live under `target/`, which is already gitignored.
+
 ## Writing New Page Objects
 
 Follow the existing pattern - locators as fields, actions as methods, explicit waits throughout:

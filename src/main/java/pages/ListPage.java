@@ -29,7 +29,7 @@ public class ListPage {
     // Locators
     // ──────────────────────────────────────────
     private By addListButton    = By.xpath("//button[contains(.,'Add another list') or contains(.,'Add list') or contains(.,'Add a list')]");
-    private By listNameInput    = By.xpath("//textarea[@data-testid='list-name-textarea']");
+    private By listNameInput    = By.xpath("//textarea[@placeholder='Enter list name…']");
     private By submitListButton = By.xpath("//button[@data-testid='list-composer-add-list-button']");
     private By listHeader       = By.xpath("//div[@data-testid='list-header']");
 
@@ -84,6 +84,7 @@ public class ListPage {
                 ExpectedConditions.visibilityOfElementLocated(listNameInput)
         );
         nameInput.clear();
+        nameInput.click();
         nameInput.sendKeys(listName);
     }
 
